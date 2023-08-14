@@ -1,0 +1,316 @@
+Done 45/53
+|------+--------+---------+------+--------+-------+
+| J   /| ADDI  /| XORI   /| LHU /| BLTZAL/| SRLV /|
+|------+--------+---------+------+--------+-------+
+| SUB /| SLT   /| MTLO    | JAL /| ADDIU /| LUI  /|
+|------+--------+---------+------+--------+-------+
+| SB  /| BGEZAL/| SRAV   /| SUBU/| SLTU  /| MULTU | 
+|------+--------+---------+------+--------+-------+
+| BEQ /| SLTI  /| LB     /| SH  /| SLL   /| JR   /| 
+|------+--------+---------+------+--------+-------+
+| AND /| MULT   | DIV     | BNE /| SLTIU /| LH   /| 
+|------+--------+---------+------+--------+-------+
+| SW  /| SRL   /| JALR   /| OR  /| MFHI   | DIVU  | 
+|------+--------+---------+------+--------+-------+
+| BLEZ/| ANDI  /| LW     /| BLTZ/| SRA   /| ADD  /| 
+|------+--------+---------+------+--------+-------+
+| XOR /| MFLO   | SYSCALL/| BGTZ/| ORI   /| LBU  /| 
+|------+--------+---------+------+--------+-------+
+| BGEZ/| SLLV  /| ADDU   /| NOR /| MTHI   |       |
+|------+--------+---------+------+--------+-------+
+
+
+Testcase: 
+
+-- LUI, SW, LW 
+lui $t1, 4096   // load 4096 to the uppersection of t1 => t1 = 0x10000000
+lui $t5, 70     // load 70 to the uppersection of t5 => t5 = 0x00000046
+sw  $t5, 0($t1) // store the value of t5 in the memory address t1
+lw  $t3, 0($t1) // load the memory address t1 back and save to t3
+
+3c091000 
+3c0d0046 
+ad2d0000 
+8d2b0000 
+
+-- special opcode test
+-- ori, nor, or, sub, subu, xor, and , sll
+-- sllv, sra, srav, srl, srlv, add, addu, slt, sltu
+ori $a0, $a0, 3
+ori $t0, $t0, 255
+ori $t1, $t1, 15
+ori $t2, $t2, 123
+nor $t3, $t1, $t2
+or $t4, $t1, $t2
+sub $s6, $t1, $t0
+subu  $t5, $t1, $t0 
+xor  $t6, $t1, $t2 
+and $t7, $t1, $t2
+sll $s0, $t1, 2
+sllv $s1, $t1, $a0
+sra $s2, $s1, 1 
+srav $s3, $s2, $a0
+srl $s4, $s1, 2
+srlv $s5, $s1, $a0
+add $s6, $t0, $a0
+addu $s7, $t0, $a0
+slt $t8, $t1, $t0
+sltu $t9, $t1, $t0
+
+34840003 
+350800ff 
+3529000f 
+354a007b 
+012a5827 
+012a6025 
+0128b022 
+01286823 
+012a7026 
+012a7824 
+00098080 
+00898804 
+00119043 
+00929807 
+0011a082 
+0091a806 
+0104b020 
+0104b821 
+0128c02a 
+0128c82b 
+0000000c
+
+R4: 0x00000003
+R5: 0x00000000
+R6: 0x00000000
+R7: 0x00000000
+R8: 0x000000ff
+R9: 0x0000000f
+R10: 0x0000007b
+R11: 0xffffff80
+R12: 0x0000007f
+R13: 0xffffff10
+R14: 0x00000074
+R15: 0x0000000b
+R16: 0x0000003c
+R17: 0x00000078
+R18: 0x0000003c
+R19: 0x00000007
+R20: 0x0000001e
+R21: 0x0000000f
+R22: 0x00000102
+R23: 0x00000102
+R24: 0x00000001
+R25: 0x00000001
+
+
+-- jal, j
+		.text
+__start:	
+		ori $t0, $t0, 200
+		j next 
+		ori $t1, $t0, 201
+		ori $t2, $t0, 202
+		ori $t3, $t0, 203
+
+next: 
+		ori $t4, $t0, 204
+        jal next2
+		syscall
+
+next2: 
+        ori $t5, $t0, 205
+        syscall
+
+350800c8 
+08100005 
+350900c9 
+350a00ca 
+350b00cb 
+350c00cc 
+0c100008 
+0000000c 
+350d00cd 
+0000000c
+
+R8: 0x000000c8
+R9: 0x00000000
+R10: 0x00000000
+R11: 0x00000000
+R12: 0x000000cc
+R13: 0x000000cd
+R31: 0x00400020
+
+-- addi, xori, slti, sltiu, andi, addiu
+		.text
+__start:	
+		addi $t0, $t0, 200
+        xori $t1, $t0, 77
+        slti $t2, $t1, 150
+        sltiu $t3, $t1, 150
+        andi $t4, $t0, 99
+        addiu $t5, $t4, 74
+        syscall
+
+210800c8 
+3909004d 
+292a0096 
+2d2b0096 
+310c0063 
+258d004a
+0000000c
+
+R8: 0x000000c8
+R9: 0x00000085
+R10: 0x00000001
+R11: 0x00000001
+R12: 0x00000040
+R13: 0x0000008a
+
+
+-- beq
+		.text
+__start:	
+		addi $t0, $t0, 200
+        addi $t1, $t1, 200
+        beq $t0, $t1, eq
+        addi $t2, $t2, 205
+        addi $t3, $t3, 204
+eq:     addi $t4, $t4, 205
+        syscall
+
+210800c8 
+212900c8 
+11090003 
+214a00cd 
+216b00cc 
+218c00cd 
+0000000c
+
+R8: 0x000000c8
+R9: 0x000000c8
+R10: 0x00000000
+R11: 0x00000000
+R12: 0x000000cd
+
+-- bne
+		.text
+__start:	
+		addi $t0, $t0, 200
+        addi $t1, $t1, 201
+        bne $t0, $t1, eq
+        addi $t2, $t2, 205
+        addi $t3, $t3, 204
+eq:     addi $t4, $t4, 205
+        syscall
+
+210800c8 
+212900c9 
+15090003 
+214a00cd 
+216b00cc 
+218c00cd 
+0000000c
+
+R8: 0x000000c8
+R9: 0x000000c9
+R10: 0x00000000
+R11: 0x00000000
+R12: 0x000000cd
+
+
+-- bgez
+		.text
+__start:	
+        addi $t1, $t1, 201
+        bgez $t1, eq
+        addi $t2, $t2, 205
+        addi $t3, $t3, 204
+eq:     addi $t4, $t4, 205
+        syscall
+
+212900c9 
+05210003 
+214a00cd 
+216b00cc 
+218c00cd 
+0000000c
+
+R9: 0x000000c9
+R10: 0x00000000
+R11: 0x00000000
+R12: 0x000000cd
+
+-- bgezal
+		.text
+__start:	
+        addi $t1, $t1, 201
+        bgezal $t1, eq
+        addi $t2, $t2, 205
+        addi $t3, $t3, 204
+eq:     addi $t4, $t4, 205
+        syscall
+
+212900c9 
+05310003
+214a00cd 
+216b00cc 
+218c00cd 
+0000000c
+
+R9: 0x000000c9
+R10: 0x00000000
+R11: 0x00000000
+R12: 0x000000cd
+R31: 0x0040000c
+
+		.text
+__start:	
+		ori $t0, $t0, 0x0024
+        lui $t1, 0x0040
+        addu $t0, $t0, $t1
+		jal $t5, $t0 
+		ori $t1, $t0, 201
+		ori $t2, $t2, 202
+		ori $t3, $t3, 203
+		ori $t4, $t4, 204
+        ori $t6, $t6, 201
+		ori $t7, $t7, 202
+		ori $t8, $t8, 203
+		ori $t9, $t9, 204
+		syscall
+
+35080024 
+3c090040 
+01094021 
+01006809 
+350900c9 
+354a00ca 
+356b00cb 
+358c00cc 
+35ce00c9 
+35ef00ca 
+371800cb 
+373900cc 
+0000000c
+
+R8: 0x00400024
+R9: 0x00400000
+R13: 0x00400014 // PC+8
+R15: 0x000000ca // t7
+R24: 0x000000cb // t8
+R25: 0x000000cc // t9
+
+
+
+		.text
+__start:	
+		ori $t0, $t0, 0xFF99
+        lui $t1, 4096
+        sb  $t0, 0($t1)
+		syscall
+rdump
+
+3508ff59 
+3c091000 
+a1280000 
+0000000c
